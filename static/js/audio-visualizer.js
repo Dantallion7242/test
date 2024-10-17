@@ -32,8 +32,6 @@ const screenWidth = canvas.width;
 const screenHeight = canvas.height;
 const baseColor = { r: 255, g: 255, b: 255 };
 const numCircles = 10;
-const gravitySpeed = 0.2;
-const gravityLimit = 250;
 
 let circleAngle = new Array(numCircles).fill(0);
 let circleGravity = new Array(numCircles).fill(0);
@@ -49,28 +47,32 @@ function draw() {
     canvasCtx.fillStyle = 'rgb(0, 0, 0)';
     canvasCtx.fillRect(0, 0, screenWidth, screenHeight); // Clear the screen
 
-    drawWaveform();
+    drawCircularWaveform(amplitude);
     drawCircles(amplitude);
 }
 
-function drawWaveform() {
-    const sliceWidth = canvas.width / bufferLength;
-    let x = 0;
+function drawCircularWaveform(amplitude) {
+    const radius = 150; // Radius of the circular waveform
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight / 2;
 
     canvasCtx.beginPath();
     for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = v * canvas.height / 2;
+        const angle = (i / bufferLength) * Math.PI * 2; // Convert to radians
+        const v = dataArray[i] / 128.0; // Normalize the data
+        const y = v * amplitude * radius; // Scale amplitude to fit the radius
+
+        const x = centerX + (radius + y) * Math.cos(angle); // Calculate x position
+        const yPosition = centerY + (radius + y) * Math.sin(angle); // Calculate y position
 
         if (i === 0) {
-            canvasCtx.moveTo(x, y);
+            canvasCtx.moveTo(x, yPosition);
         } else {
-            canvasCtx.lineTo(x, y);
+            canvasCtx.lineTo(x, yPosition);
         }
-
-        x += sliceWidth;
     }
-    canvasCtx.lineTo(canvas.width, canvas.height / 2);
+
+    canvasCtx.closePath();
     canvasCtx.strokeStyle = 'rgba(255, 215, 0, 0.8)'; // Set stroke color to golden
     canvasCtx.lineWidth = 2; // Set stroke width
     canvasCtx.stroke();
