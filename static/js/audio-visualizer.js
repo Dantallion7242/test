@@ -37,8 +37,6 @@ const gravityLimit = 250;
 
 let circleAngle = new Array(numCircles).fill(0);
 let circleGravity = new Array(numCircles).fill(0);
-let squareSize = 20;
-let squareBlinking = true;
 
 function draw() {
     requestAnimationFrame(draw);
@@ -46,74 +44,55 @@ function draw() {
     if (!analyser || !dataArray) return;
 
     analyser.getByteTimeDomainData(dataArray);
-    const amplitude = Math.max(...dataArray) / 255;
+    const amplitude = Math.max(...dataArray) / 255; // Normalize amplitude
 
     canvasCtx.fillStyle = 'rgb(0, 0, 0)';
-    canvasCtx.fillRect(0, 0, screenWidth, screenHeight);
+    canvasCtx.fillRect(0, 0, screenWidth, screenHeight); // Clear the screen
 
+    drawWaveform();
     drawCircles(amplitude);
-    drawFibonacciSpiral(amplitude);
-    drawBlinkingSquares();
+}
+
+function drawWaveform() {
+    const sliceWidth = canvas.width / bufferLength;
+    let x = 0;
+
+    canvasCtx.beginPath();
+    for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * canvas.height / 2;
+
+        if (i === 0) {
+            canvasCtx.moveTo(x, y);
+        } else {
+            canvasCtx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+    }
+    canvasCtx.lineTo(canvas.width, canvas.height / 2);
+    canvasCtx.strokeStyle = 'rgba(255, 215, 0, 0.8)'; // Set stroke color to golden
+    canvasCtx.lineWidth = 2; // Set stroke width
+    canvasCtx.stroke();
 }
 
 function drawCircles(amplitude) {
     for (let i = 0; i < numCircles; i++) {
         circleAngle[i] += 0.05 * (i + 1);
 
-        // Update radius based on amplitude
-        let radius = (Math.abs(amplitude) * 50) + 10;
+        // Calculate circle properties based on amplitude
+        let radius = (Math.abs(amplitude) * 50) + 10; // Dynamic radius with minimum size
         let zDepth = 100 + i * 5;
         let x = screenWidth / 2 + (zDepth * Math.cos(circleAngle[i]));
-        let y = screenHeight / 2 + (zDepth * Math.sin(circleAngle[i])) - (amplitude * 100);
+        let y = screenHeight / 2 + (zDepth * Math.sin(circleAngle[i]));
 
-        // Gravity effect
-        circleGravity[i] += gravitySpeed;
-        if (y + circleGravity[i] > screenHeight - gravityLimit) {
-            circleGravity[i] = -Math.abs(circleGravity[i]) * 0.8;
-        }
-        y += circleGravity[i];
-
-        const color = colorCycle(baseColor, i * 10);
+        // Draw only the outline of the circle
         canvasCtx.beginPath();
         canvasCtx.arc(x, y, radius, 0, Math.PI * 2);
-        canvasCtx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 1)`;
-        canvasCtx.fill();
+        const color = colorCycle(baseColor, i * 10);
+        canvasCtx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 1)`;
+        canvasCtx.lineWidth = 2; // Set stroke width for circles
         canvasCtx.stroke();
-    }
-}
-
-function drawFibonacciSpiral(amplitude) {
-    const centerX = screenWidth / 2;
-    const centerY = screenHeight / 2;
-    const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
-    let radius = 0;
-
-    for (let i = 0; i < 12; i++) { // Number of turns
-        radius += amplitude * 5; // Control the expansion based on amplitude
-        const angle = i * Math.PI / 6; // Adjust the angle for spiral
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        canvasCtx.fillStyle = `rgba(255, 215, 0, 0.5)`; // Golden color
-        canvasCtx.beginPath();
-        canvasCtx.arc(x, y, 5, 0, Math.PI * 2);
-        canvasCtx.fill();
-    }
-}
-
-function drawBlinkingSquares() {
-    const squareCount = 5;
-    const squareInterval = 100; // Time in ms for blinking
-    const timeElapsed = Date.now() % (squareInterval * 2);
-    const opacity = (timeElapsed < squareInterval) ? timeElapsed / squareInterval : (squareInterval * 2 - timeElapsed) / squareInterval;
-
-    for (let i = 0; i < squareCount; i++) {
-        const size = squareSize * (1 + Math.sin(Date.now() * 0.01 + i)); // Pulsing effect
-        const x = Math.random() * (screenWidth - size);
-        const y = Math.random() * (screenHeight - size);
-
-        canvasCtx.fillStyle = `rgba(0, 255, 0, ${opacity})`; // Green color for squares
-        canvasCtx.fillRect(x, y, size, size);
     }
 }
 
@@ -123,5 +102,4 @@ function colorCycle(baseColor, offset) {
     const b = (baseColor.b + offset * 4) % 256;
     return { r, g, b };
 }
-
 
